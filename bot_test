@@ -1,0 +1,144 @@
+import telebot
+from telebot import types
+import configure
+import coin_info
+
+client = telebot.TeleBot(configure.config['token'])
+
+with open('all_coins.txt', encoding='utf-8') as file:
+    all_coins = file.read().split('\n')
+
+
+@client.message_handler(commands=['start'])
+def answer(message):
+    markup_inline = types.InlineKeyboardMarkup()
+    item_long_short = types.InlineKeyboardButton(text='Топ лонги🟢/шорты🔴', callback_data='longshort')
+    item_stat = types.InlineKeyboardButton(text='Данные о монете 📊', callback_data='stat')
+    item_info = types.InlineKeyboardButton(text='Информация о монете📜', callback_data='info')
+    item_trans = types.InlineKeyboardButton(text='Информация о ликвидах и переводах📉📈', callback_data='trans')
+    item_calc = types.InlineKeyboardButton(text='Калькулятор усреднения⌨️', callback_data='calc')
+    markup_inline.add(item_stat, item_long_short, item_calc, item_info, item_trans)
+    client.send_message(message.chat.id, f"""🫡Шалом Барыга, я бот команды NINJA 🥷🏿
+Моя задача, предоставить тебе всю необходимую инфу для профитного трейдинга! 💰
+Шо тебя интересует? 🧐""",
+                        reply_markup=markup_inline)
+
+
+@client.callback_query_handler(func=lambda call: True)
+def get_user_info(call):
+    if call.data == 'stat':
+        markup_reply = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        main_menu = types.KeyboardButton('Главное меню')
+        coins = []
+        for coin in all_coins:
+            item = types.KeyboardButton('/' + coin)
+            coins.append(item)
+
+        markup_reply.add(main_menu, *coins)
+
+        client.send_message(call.message.chat.id, 'Шо барыга, какую монету поторгуем?',
+                            reply_markup=markup_reply
+                            )
+    elif call.data == 'info':
+        client.send_message(call.message.chat.id, 'Прости друг, этот раздел в процессе, скоро всё будет'
+                            )
+
+    elif call.data == 'calc':
+        client.send_message(call.message.chat.id, 'Прости друг, этот раздел в процессе, скоро всё будет'
+                            )
+
+    elif call.data == 'trans':
+        client.send_message(call.message.chat.id, 'Прости друг, этот раздел в процессе, скоро всё будет'
+                            )
+
+    elif call.data == 'longshort':
+        client.send_message(call.message.chat.id, 'Прости друг, этот раздел в процессе, скоро всё будет'
+                            )
+
+
+@client.message_handler(content_types = ['text'])
+def menu(message):
+    if message.text == 'Главное меню':
+        markup_inline = types.InlineKeyboardMarkup()
+        item_long_short = types.InlineKeyboardButton(text='Топ лонги🟢/шорты🔴', callback_data='longshort')
+        item_stat = types.InlineKeyboardButton(text='Данные о монете 📊', callback_data='stat')
+        item_info = types.InlineKeyboardButton(text='Информация о монете📜', callback_data='info')
+        item_trans = types.InlineKeyboardButton(text='Информация о ликвидах и переводах📉📈', callback_data='trans')
+        item_calc = types.InlineKeyboardButton(text='Калькулятор усреднения⌨️', callback_data='calc')
+        markup_inline.add(item_stat, item_long_short, item_calc, item_info, item_trans)
+        client.send_message(message.chat.id, f"""🫡Шалом Барыга, я бот команды NINJA 🥷🏿
+Моя задача, предоставить тебе всю необходимую инфу для профитного трейдинга! 💰
+Шо тебя интересует? 🧐""",
+                            reply_markup=markup_inline)
+
+
+@client.message_handler(commands=all_coins)
+def get_text(message):
+    if message.text.upper()[1:] in all_coins:
+        messagetoedit = client.send_message(message.chat.id, 'Погоди ка братан, найду инфу...')
+
+        try:
+            res = coin_info.get_info(message.text.upper()[1:] + 'USDT')
+
+            client.edit_message_text(chat_id=message.chat.id, message_id=messagetoedit.message_id,
+                                 text=f"""Короче, смотри шо я тут нарыл на эту монетку:
+#{message.text.upper().lstrip("/")} | {res['price']}$ |
+🔴 {res['funding']} Фандинг
+
+🕐 Тайм Фрейм: 15m
+
+🐹 Все барыги:
+🟩 Лонгуют:{res['15m']['all']['long']}%  🟥 Шортят:{res['15m']['all']['short']}%
+
+💪🏻 Топовые барыги:
+🟩 Лонгуют:{res['15m']['top_traders']['long']}%  🟥 Шортят:{res['15m']['top_traders']['short']}% 
+
+☁ Обьемы (лонгов/шортов): 
+🟩 Покупки: {res['15m']['volumes']['buy']} {message.text.upper().lstrip("/")}
+🟥 Продажи: {res['15m']['volumes']['sell']} {message.text.upper().lstrip("/")}
+
+
+🕐 Тайм Фрейм: 1h
+
+🐹 Все барыги:
+🟩 Лонгуют:{res['1h']['all']['long']}%  🟥 Шортят:{res['1h']['all']['short']}% 
+
+💪🏻 Топовые барыги:
+🟩 Лонгуют:{res['1h']['top_traders']['long']}%  🟥 Шортят:{res['1h']['top_traders']['short']}% 
+
+☁ Обьемы (лонгов/шортов):
+🟩 Покупки: {res['1h']['volumes']['buy']} {message.text.upper().lstrip("/")}
+🟥 Продажи: {res['1h']['volumes']['sell']} {message.text.upper().lstrip("/")}
+
+
+🕐 Тайм Фрейм: 1d
+
+🐹 Все барыги:
+🟩 Лонгуют:{res['1d']['all']['long']}%  🟥 Шортят:{res['1d']['all']['short']}% 
+
+💪🏻 Топовые барыги:
+🟩 Лонгуют:{res['1d']['top_traders']['long']}%  🟥 Шортят:{res['1d']['top_traders']['short']}% 
+
+☁ Обьемы (лонгов/шортов): 
+🟩 Покупки: {res['1d']['volumes']['buy']} {message.text.upper().lstrip("/")}
+🟥 Продажи: {res['1d']['volumes']['sell']} {message.text.upper().lstrip("/")}
+
+Авторский канал: @ninjacrypto_trade
+Чат: @ninjacrypto_chat
+Новости: @ninjacrypto_news
+Сигналы участников: @ninjacrypto_signal
+Самые жирные AirDrop: @ninjacrypto_airdrop
+From: @ninjacrypto1bot""")
+        except Exception as e:
+            client.edit_message_text(chat_id=message.chat.id, message_id=messagetoedit.message_id,
+                                     text='Много же вас, барыг. Отдохну немного')
+    else:
+        client.send_message(message.chat.id, 'Кажется, я не знаю такую монету(')
+
+
+def main():
+    client.polling(none_stop=True, interval=0)
+
+
+if __name__ == '__main__':
+    main()
